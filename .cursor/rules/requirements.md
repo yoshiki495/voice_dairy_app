@@ -162,9 +162,3 @@ users/{userId}/moods/{yyyy-MM-dd}
 - 将来拡張：Sign in with Apple（iOS）を `sign_in_with_apple` + **Custom Token** で追加可能（任意）。
 - アプリ → Firebase IDトークンを取得 → Cloud Run で検証（`Authorization: Bearer <token>`）。
 
-## 9. エラー処理・リトライ方針
-
-- **dio** でタイムアウト（接続10s/送信60s）・指数バックオフ（最大3回）。
-- オフライン時は **送信キュー** に保存し、オンライン復帰時に自動再送。
-- 解析失敗時はUIに再試行CTA。
-- 署名URL有効期限切れは自動で再発行リクエスト。
