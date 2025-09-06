@@ -81,7 +81,7 @@ class MoodSummary extends StatelessWidget {
               Expanded(
                 child: _buildMoodCount(
                   context,
-                  '😊 ポジティブ',
+                  'ポジティブ',
                   summary['positiveCount'],
                   Colors.green,
                 ),
@@ -90,7 +90,7 @@ class MoodSummary extends StatelessWidget {
               Expanded(
                 child: _buildMoodCount(
                   context,
-                  '😐 ニュートラル',
+                  '普通',
                   summary['neutralCount'],
                   Colors.orange,
                 ),
@@ -99,7 +99,7 @@ class MoodSummary extends StatelessWidget {
               Expanded(
                 child: _buildMoodCount(
                   context,
-                  '😢 ネガティブ',
+                  'ネガティブ',
                   summary['negativeCount'],
                   Colors.red,
                 ),
