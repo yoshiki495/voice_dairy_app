@@ -4,12 +4,12 @@
 
 - 毎日 **日本時間 20:00** にプッシュ通知（FCM）を送信。
 - 通知タップ → 録音画面へ遷移。**最大60秒**の自由発話を録音。
-- 音声を **Cloud Run** のAPIへ送信 → 返却された **感情スコア（-1〜1）** を **週次グラフ（月〜日）** に反映。
+- 音声を **Firebase Functions** のAPIへ送信 → 返却された **感情スコア（-1〜1）** を **週次グラフ（月〜日）** に反映。
 - **週次グラフ（月〜日）**はアプリ側で録音画面とは別のダッシュボード画面表示する
 - **Firebase Authentication（メール＋パスワード）** によるログイン。
 - データはユーザー単位で管理。
 
-## 2. 使用技術（Flutter）
+## 2. 使用技術（Flutter + Firebase一括管理）
 
 | 項目 | 採用技術/パッケージ（候補） | 補足 |
 |------|---------------------------|------|
@@ -22,7 +22,8 @@
 | ローカル通知 | **flutter_local_notifications** | |
 | 認証 | **firebase_auth** | |
 | データベース | **cloud_firestore** | |
-| ストレージ | **GCS（Google Cloud Storage）** | |
+| ストレージ | **Firebase Storage** | GCSからFirebase Storageに変更 |
+| API通信 | **cloud_functions** | HTTPS Callable Functions |
 
 ## 3. 機能要件（詳細）
 
@@ -46,60 +47,117 @@
 
 ### 3.3 アップロード & 解析
 
-1. **推奨フロー（GCS 直アップ）**
-   - クライアント → Cloud Run に **署名付きURL発行** を依頼
-2. クライアントが GCS に **HTTP PUT** で音声アップ
-3. 完了後、クライアント → Cloud Run の `/analyze` へ **メタ情報**（GCSパス等）送信
+1. **Firebase統合フロー**
+   - クライアント → Firebase Functions に **署名付きURL発行** を依頼
+2. クライアントが Firebase Storage に **HTTP PUT** で音声アップ
+3. 完了後、クライアント → Firebase Functions の `analyzeEmotion` へ **メタ情報**（Storageパス等）送信
 4. 解析 → スコア返却
-- **メリット**: 大きなファイルでもバックエンド負荷軽減・コスト抑制。
+- **メリット**: Firebase一括管理、認証自動統合、コスト最適化。
 
-## 4. バックエンドAPI仕様（仮）
+## 4. Firebase Functions API仕様
 
 ### 4.1 署名付きURL発行
 
-```http
-POST https://<cloud-run>/upload-url
-Authorization: Bearer <Firebase ID token>
-
-{
-  "path": "audio/<userId>/<YYYY-MM-DD>.m4a",
-  "contentType": "audio/m4a"
-}
+```dart
+// Flutter側（cloud_functions使用）
+final callable = FirebaseFunctions.instance.httpsCallable('getUploadUrl');
+final result = await callable.call({
+  'date': '2025-08-14',
+  'contentType': 'audio/m4a'
+});
 ```
 
-**レスポンス**
+**Functions実装例**
 
-```json
-{
-  "uploadUrl": "https://storage.googleapis.com/....?X-Goog-Signature=...",
-  "publicUrl": "gs://bucket/audio/<userId>/<YYYY-MM-DD>.m4a"
-}
+```javascript
+exports.getUploadUrl = functions
+  .region('asia-northeast1')
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(`audio/${context.auth.uid}/${data.date}.m4a`);
+    
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // 15分
+      contentType: 'audio/m4a'
+    });
+    
+    return { uploadUrl: url };
+  });
 ```
 
-### 4.2 解析（スコア取得）
+### 4.2 感情解析
 
-```http
-POST https://<cloud-run>/analyze
-Authorization: Bearer <Firebase ID token>
-Content-Type: application/json
-
-{
-  "gcsUri": "gs://bucket/audio/<userId>/<YYYY-MM-DD>.m4a",
-  "recordedAt": "2025-08-14T20:01:12+09:00"
-}
+```dart
+// Flutter側
+final callable = FirebaseFunctions.instance.httpsCallable('analyzeEmotion');
+final result = await callable.call({
+  'storagePath': 'audio/userId/2025-08-14.m4a',
+  'recordedAt': '2025-08-14T20:01:12+09:00'
+});
 ```
 
-**レスポンス**
+**Functions実装例**
 
-```json
-{
-  "score": 0.72,
-  "timestamp": "2025-08-14T20:01:15+09:00",
-  "label": "positive"  // "negative" | "neutral" もあり
-}
+```javascript
+exports.analyzeEmotion = functions
+  .region('asia-northeast1')
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    
+    const { storagePath, recordedAt } = data;
+    
+    // 感情分析ロジック（Speech-to-Text + Natural Language AI など）
+    const score = await performEmotionAnalysis(storagePath);
+    
+    // Firestoreに結果保存
+    await admin.firestore()
+      .collection('users').doc(context.auth.uid)
+      .collection('moods').doc(extractDateFromPath(storagePath))
+      .set({
+        score,
+        label: score >= 0.5 ? 'positive' : score <= -0.5 ? 'negative' : 'neutral',
+        recordedAt: admin.firestore.Timestamp.fromDate(new Date(recordedAt)),
+        storagePath,
+        source: 'daily_20_jst',
+        version: 1
+      });
+    
+    return {
+      score,
+      timestamp: new Date().toISOString(),
+      label: score >= 0.5 ? 'positive' : score <= -0.5 ? 'negative' : 'neutral'
+    };
+  });
 ```
 
-> 備考: 音声をAPI直送する設計も可能ですが、ネットワーク再送やサイズ制限、Cloud Run のリクエスト時間制限面で 署名URL方式 を推奨。
+### 4.3 スケジュール通知
+
+```javascript
+exports.sendDailyNotification = functions
+  .region('asia-northeast1')
+  .pubsub.schedule('0 11 * * *') // UTC 11:00 = JST 20:00
+  .timeZone('Asia/Tokyo')
+  .onRun(async (context) => {
+    const message = {
+      notification: {
+        title: '今日の音声日記を記録しましょう',
+        body: '1分でOK。今の気分を話してみましょう。'
+      },
+      topic: 'daily_reminder'
+    };
+    
+    await admin.messaging().send(message);
+    console.log('Daily notification sent successfully');
+  });
+```
 
 ## 5. データモデル
 
@@ -114,7 +172,7 @@ users/{userId}/moods/{yyyy-MM-dd}
   score: number       // -1.0 ~ 1.0
   label: string       // "positive" | "neutral" | "negative"
   recordedAt: timestamp
-  gcsUri: string      // gs://...
+  storagePath: string // Firebase Storage path
   source: string      // "daily_20_jst"
   version: number     // スキーマ/モデルのバージョン
 ```
@@ -153,12 +211,13 @@ users/{userId}/moods/{yyyy-MM-dd}
 
 ## 7. 通知スケジュール
 
-- **Server → FCM**: Cloud Scheduler（cron: `0 11 * * *` UTC = JST 20:00） → Cloud Run/Functions → FCM トピック配信 or 個別トークン配信。
+- **Firebase Functions**: スケジュール関数（cron: `0 11 * * *` UTC = JST 20:00）でFCM トピック配信。
 - **クライアント**: 初回起動時に `flutter_local_notifications` でフォアグラウンド補助、タイムゾーンは `tz` で **Asia/Tokyo** 固定。
+- **メリット**: Cloud Schedulerが不要、Firebase Consoleで一元管理。
 
 ## 8. 認証（無料で便利）
 
 - **Firebase Authentication（メール/パスワード）** を採用。
-- 将来拡張：Sign in with Apple（iOS）を `sign_in_with_apple` + **Custom Token** で追加可能（任意）。
-- アプリ → Firebase IDトークンを取得 → Cloud Run で検証（`Authorization: Bearer <token>`）。
+- 将来拡張：Sign in with Apple（iOS）を `sign_in_with_apple` で追加可能（任意）。
+- アプリ → Firebase IDトークンを取得 → Firebase Functions で自動検証（HTTPS Callable）。
 
