@@ -23,6 +23,76 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     super.dispose();
   }
 
+  void _showPasswordResetDialog(BuildContext context) {
+    final resetEmailController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('パスワードリセット'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('パスワードリセット用のメールを送信します。'),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: resetEmailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'メールアドレス',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = resetEmailController.text.trim();
+              if (email.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('メールアドレスを入力してください'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                await ref.read(authProvider.notifier).resetPassword(email);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('パスワードリセットメールを送信しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.toString()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('送信'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -158,9 +228,19 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   ],
                 ),
 
+                // パスワードリセットリンク
+                Center(
+                  child: TextButton(
+                    onPressed: authState.isLoading
+                        ? null
+                        : () => _showPasswordResetDialog(context),
+                    child: const Text('パスワードを忘れた方はこちら'),
+                  ),
+                ),
+
                 const SizedBox(height: 32),
 
-                // サンプルアカウント情報
+                // Firebase 認証情報
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -171,17 +251,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'サンプルアカウント',
+                        'Firebase 認証',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text('メール: test@example.com'),
-                      const Text('パスワード: 123456'),
-                      const SizedBox(height: 8),
                       Text(
-                        '※ 現在はバックエンド未実装のため、任意のメール・パスワードでログイン可能です',
+                        '• Firebase Auth を使用した本格的な認証機能\n'
+                        '• メール・パスワード認証\n'
+                        '• パスワードリセット機能\n'
+                        '• Firestore でユーザー情報管理',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

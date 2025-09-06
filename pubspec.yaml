@@ -53,11 +53,11 @@ dependencies:
   # Date/Time utilities
   intl: ^0.19.0
   
-  # Firebase (placeholder for future implementation)
-  # firebase_core: ^2.24.2  # Temporarily disabled for compatibility
-  # firebase_auth: ^4.15.3  # Temporarily disabled for compatibility
-  # cloud_firestore: ^4.13.6  # Temporarily disabled for compatibility
-  # firebase_messaging: ^14.7.10  # Temporarily disabled for compatibility
+  # Firebase
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  cloud_firestore: ^4.13.6
+  firebase_messaging: ^14.7.10
   
   # Local notifications
   # flutter_local_notifications: ^16.3.2  # Temporarily disabled for compatibility

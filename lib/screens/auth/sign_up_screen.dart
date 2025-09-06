@@ -202,7 +202,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
                 const Spacer(),
 
-                // 注意事項
+                // Firebase 認証情報
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -213,16 +213,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '注意事項',
+                        'Firebase 認証',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '• 現在はサンプル実装のため、実際のアカウント作成は行われません\n'
-                        '• 入力したメール・パスワードは保存されません\n'
-                        '• アプリを再起動すると情報はリセットされます',
+                        '• Firebase Auth を使用した本格的なアカウント作成\n'
+                        '• メール・パスワード認証\n'
+                        '• Firestore でユーザー情報を安全に管理\n'
+                        '• 作成後は自動的にサインイン状態になります',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

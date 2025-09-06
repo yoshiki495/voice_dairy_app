@@ -45,7 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 title: Text(authState.user?.email ?? ''),
-                subtitle: const Text('サンプルアカウント'),
+                subtitle: const Text('Firebase認証ユーザー'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   // プロフィール編集画面へ（将来実装）
@@ -368,9 +368,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('• 現在はサンプル実装です'),
-              Text('• 実際の音声解析は未実装'),
-              Text('• データは永続化されません'),
+              Text('• Firebase認証が実装済みです'),
+              Text('• 音声解析機能は今後実装予定'),
+              Text('• ユーザーデータはFirestoreに保存'),
             ],
           ),
         ),
@@ -398,9 +398,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SizedBox(height: 16),
         Text(
-          '現在はサンプル実装版です。\n'
-          'Firebase認証、音声録音・解析、\n'
-          'プッシュ通知機能は今後実装予定です。',
+          'Firebase認証機能が実装済みです。\n'
+          '音声録音・解析、プッシュ通知機能は\n'
+          '今後実装予定です。',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
       ],
