@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../models/mood_entry.dart';
+import '../services/emotion_analysis_service.dart';
 import '../services/sample_data_service.dart';
 
 // 感情データを管理するプロバイダー（サンプル実装）
@@ -28,6 +30,8 @@ class MoodState {
 }
 
 class MoodNotifier extends StateNotifier<MoodState> {
+  final EmotionAnalysisService _emotionService = EmotionAnalysisService();
+
   MoodNotifier() : super(const MoodState()) {
     loadMoodData();
   }
@@ -36,40 +40,65 @@ class MoodNotifier extends StateNotifier<MoodState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 実際の実装では Firestore からデータを取得
-      await Future.delayed(const Duration(milliseconds: 800));
+      // 過去1ヶ月のデータを取得
+      final now = DateTime.now();
+      final monthAgo = DateTime(now.year, now.month - 1, now.day);
       
-      // サンプルデータを使用
-      final entries = SampleDataService.generateMonthlyMoodData();
+      final results = await _emotionService.getMoodData(
+        startDate: monthAgo,
+        endDate: now,
+      );
+      
+      final entries = results.map((result) {
+        final dateString = DateFormat('yyyy-MM-dd').format(result.timestamp);
+        return MoodEntry(
+          id: 'mood_${dateString}_${result.timestamp.millisecondsSinceEpoch}',
+          date: dateString,
+          score: result.score,
+          label: MoodLabel.fromCategory(result.category),
+          intensity: result.intensity,
+          recordedAt: result.timestamp,
+          storagePath: null, // 必要に応じて設定
+          source: 'daily_20_jst',
+          version: 2,
+        );
+      }).toList();
+      
+      // 日付順にソート
+      entries.sort((a, b) => a.date.compareTo(b.date));
       
       state = state.copyWith(entries: entries, isLoading: false);
     } catch (e) {
-      state = state.copyWith(
-        error: 'データの読み込みに失敗しました: ${e.toString()}',
-        isLoading: false,
-      );
+      // エラー時はサンプルデータを使用
+      print('感情データ取得エラー: $e');
+      final entries = SampleDataService.generateMonthlyMoodData();
+      state = state.copyWith(entries: entries, isLoading: false);
     }
   }
 
-  Future<void> addMoodEntry(double score) async {
+  /// 音声ファイルから感情分析を実行してエントリを追加
+  Future<void> addMoodEntryFromAudio(String audioFilePath) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 実際の実装では音声録音・解析・Firestore保存を行う
-      await Future.delayed(const Duration(seconds: 2));
+      // 感情分析を実行
+      final result = await _emotionService.analyzeEmotion(
+        audioFilePath: audioFilePath,
+      );
       
       final now = DateTime.now();
-      final dateString = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final dateString = DateFormat('yyyy-MM-dd').format(now);
       
       final newEntry = MoodEntry(
-        id: 'mood_${dateString}_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'mood_${dateString}_${now.millisecondsSinceEpoch}',
         date: dateString,
-        score: double.parse(score.toStringAsFixed(2)),
-        label: MoodLabel.fromScore(score),
-        recordedAt: now,
-        gcsUri: 'gs://sample-bucket/audio/sample_user_123/$dateString.m4a',
+        score: result.score,
+        label: MoodLabel.fromCategory(result.category),
+        intensity: result.intensity,
+        recordedAt: result.timestamp,
+        storagePath: null, // Firebase Functionsで管理
         source: 'daily_20_jst',
-        version: 1,
+        version: 2,
       );
 
       // 既存のエントリから今日のデータを削除（あれば）
@@ -81,6 +110,45 @@ class MoodNotifier extends StateNotifier<MoodState> {
       updatedEntries.add(newEntry);
       
       // 日付順にソート
+      updatedEntries.sort((a, b) => a.date.compareTo(b.date));
+
+      state = state.copyWith(entries: updatedEntries, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(
+        error: '感情分析に失敗しました: ${e.toString()}',
+        isLoading: false,
+      );
+    }
+  }
+
+  /// 旧バージョン互換のためのメソッド（テスト用）
+  @Deprecated('Use addMoodEntryFromAudio instead')
+  Future<void> addMoodEntry(double score) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      await Future.delayed(const Duration(seconds: 1));
+      
+      final now = DateTime.now();
+      final dateString = DateFormat('yyyy-MM-dd').format(now);
+      
+      final newEntry = MoodEntry(
+        id: 'mood_${dateString}_${now.millisecondsSinceEpoch}',
+        date: dateString,
+        score: double.parse(score.toStringAsFixed(2)),
+        label: MoodLabel.fromScore(score),
+        intensity: score, // 簡易実装
+        recordedAt: now,
+        storagePath: null,
+        source: 'manual_test',
+        version: 1,
+      );
+
+      final updatedEntries = state.entries
+          .where((entry) => entry.date != dateString)
+          .toList();
+      
+      updatedEntries.add(newEntry);
       updatedEntries.sort((a, b) => a.date.compareTo(b.date));
 
       state = state.copyWith(entries: updatedEntries, isLoading: false);

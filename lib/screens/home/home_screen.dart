@@ -106,16 +106,51 @@ class HomeScreen extends ConsumerWidget {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.check_circle, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Text(
-                              '今日の音声日記を記録済みです',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                              ),
+                            Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '今日の音声日記を記録済みです',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
+                            // 今日のエントリがある場合、詳細を表示
+                            if (weeklyEntries.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Builder(
+                                builder: (context) {
+                                  final today = DateTime.now();
+                                  final todayString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+                                  final todayEntry = weeklyEntries.where((e) => e.date == todayString).firstOrNull;
+                                  
+                                  if (todayEntry != null) {
+                                    return Row(
+                                      children: [
+                                        Text(
+                                          todayEntry.label.emoji,
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${todayEntry.label.displayName} (${todayEntry.score.toStringAsFixed(1)})',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: Colors.white.withOpacity(0.9),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
                           ],
                         ),
                       ),

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:record/record.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import '../../providers/mood_provider.dart';
+import '../../models/mood_entry.dart';
 
 enum RecordingState {
   idle,
@@ -31,6 +36,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   late Animation<double> _pulseAnimation;
   late Animation<double> _waveAnimation;
 
+  // 録音関連
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  String? _audioPath;
+
   @override
   void initState() {
     super.initState();
@@ -57,34 +66,76 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   @override
   void dispose() {
     _recordingTimer?.cancel();
+    _audioRecorder.dispose();
     _pulseController.dispose();
     _waveController.dispose();
     super.dispose();
   }
 
   void _startRecording() async {
-    setState(() {
-      _recordingState = RecordingState.recording;
-      _recordingDuration = 0;
-    });
+    // マイク権限をチェック
+    final permission = await Permission.microphone.status;
+    if (!permission.isGranted) {
+      final result = await Permission.microphone.request();
+      if (!result.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('マイクの権限が必要です'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
 
-    // アニメーション開始
-    _pulseController.repeat();
-    _waveController.repeat();
+    try {
+      // 録音ファイルのパスを生成
+      final directory = await getTemporaryDirectory();
+      final fileName = 'recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      _audioPath = '${directory.path}/$fileName';
 
-    // 録音タイマー開始
-    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // 録音開始
+      await _audioRecorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 44100,
+          bitRate: 96000,
+        ),
+        path: _audioPath!,
+      );
+
       setState(() {
-        _recordingDuration++;
+        _recordingState = RecordingState.recording;
+        _recordingDuration = 0;
       });
 
-      if (_recordingDuration >= maxRecordingDuration) {
-        _stopRecording();
-      }
-    });
+      // アニメーション開始
+      _pulseController.repeat();
+      _waveController.repeat();
 
-    // 実際の録音処理は将来実装
-    // await record.start();
+      // 録音タイマー開始
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _recordingDuration++;
+        });
+
+        if (_recordingDuration >= maxRecordingDuration) {
+          _stopRecording();
+        }
+      });
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('録音開始に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _stopRecording() async {
@@ -92,36 +143,69 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     _pulseController.stop();
     _waveController.stop();
 
-    setState(() {
-      _recordingState = RecordingState.completed;
-    });
+    try {
+      // 録音停止
+      await _audioRecorder.stop();
 
-    // 実際の録音停止処理は将来実装
-    // await record.stop();
+      setState(() {
+        _recordingState = RecordingState.completed;
+      });
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('録音停止に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() {
+        _recordingState = RecordingState.idle;
+      });
+    }
   }
 
   void _processRecording() async {
+    if (_audioPath == null || !File(_audioPath!).existsSync()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('録音ファイルが見つかりません'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _recordingState = RecordingState.processing;
     });
 
     try {
-      // ランダムなスコアを生成（実際の実装では音声解析結果を使用）
-      final random = Random();
-      final score = (random.nextDouble() * 2.0) - 1.0;
+      // 感情分析を実行
+      await ref.read(moodProvider.notifier).addMoodEntryFromAudio(_audioPath!);
       
-      // サンプル実装: 感情スコアを保存
-      await ref.read(moodProvider.notifier).addMoodEntry(score);
-      
-      // 結果を表示
-      if (mounted) {
-        _showResultDialog(score);
+      // 結果を取得して表示
+      final moodState = ref.read(moodProvider);
+      if (moodState.entries.isNotEmpty) {
+        final latestEntry = moodState.entries.last;
+        if (mounted) {
+          _showResultDialog(latestEntry);
+        }
       }
+
+      // 一時ファイルを削除
+      try {
+        await File(_audioPath!).delete();
+      } catch (e) {
+        print('一時ファイル削除エラー: $e');
+      }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('処理エラー: ${e.toString()}'),
+            content: Text('感情分析エラー: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -133,26 +217,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     }
   }
 
-  void _showResultDialog(double score) {
-    final label = score >= 0.5 
-        ? 'ポジティブ' 
-        : score <= -0.5 
-            ? 'ネガティブ' 
-            : 'ニュートラル';
-    
-    final emoji = score >= 0.5 
-        ? '😊' 
-        : score <= -0.5 
-            ? '😢' 
-            : '😐';
-
+  void _showResultDialog(MoodEntry entry) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
+            Text(entry.label.emoji, style: const TextStyle(fontSize: 24)),
             const SizedBox(width: 8),
             const Text('解析完了'),
           ],
@@ -161,15 +233,22 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'スコア: ${score.toStringAsFixed(2)}',
+              '感情: ${entry.label.displayName}',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '感情: $label',
+              'スコア: ${entry.score.toStringAsFixed(2)}',
               style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '強度: ${entry.intensity.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
             ),
             const SizedBox(height: 16),
             const Text('今日の音声日記を記録しました！'),
@@ -189,9 +268,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   }
 
   void _resetRecording() {
+    // 既存の録音ファイルを削除
+    if (_audioPath != null && File(_audioPath!).existsSync()) {
+      try {
+        File(_audioPath!).deleteSync();
+      } catch (e) {
+        print('録音ファイル削除エラー: $e');
+      }
+    }
+    
     setState(() {
       _recordingState = RecordingState.idle;
       _recordingDuration = 0;
+      _audioPath = null;
     });
   }
 
