@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../models/user.dart';
-import '../services/sample_data_service.dart';
+import '../services/firebase_auth_service.dart';
 
 // 認証状態を管理するプロバイダー（サンプル実装）
 class AuthState {
@@ -28,21 +29,21 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
-    // アプリ起動時に自動的にサンプルユーザーでログイン
-    _autoLogin();
-  }
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
-  void _autoLogin() {
-    state = state.copyWith(isLoading: true);
-    
-    // 実際の実装では Firebase Auth を使用
-    // ここではサンプルデータを使用
-    Future.delayed(const Duration(seconds: 1), () {
-      state = state.copyWith(
-        user: SampleDataService.sampleUser,
-        isLoading: false,
-      );
+  AuthNotifier() : super(const AuthState()) {
+    // Firebase認証状態の変更を監視
+    _authService.authStateChanges.listen((firebase_auth.User? user) {
+      if (user != null) {
+        final appUser = User(
+          id: user.uid,
+          email: user.email ?? '',
+          createdAt: user.metadata.creationTime ?? DateTime.now(),
+        );
+        state = state.copyWith(user: appUser, isLoading: false);
+      } else {
+        state = const AuthState();
+      }
     });
   }
 
@@ -50,20 +51,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 実際の実装では Firebase Auth を使用
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // サンプル実装: どんなメール・パスワードでもログイン成功
-      final user = User(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        createdAt: DateTime.now(),
-      );
-
-      state = state.copyWith(user: user, isLoading: false);
+      await _authService.signInWithEmailAndPassword(email, password);
+      // 認証状態の変更は authStateChanges で自動的に処理される
     } catch (e) {
       state = state.copyWith(
-        error: 'ログインに失敗しました: ${e.toString()}',
+        error: e.toString(),
         isLoading: false,
       );
     }
@@ -73,20 +65,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 実際の実装では Firebase Auth を使用
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // サンプル実装: 自動的にアカウント作成成功
-      final user = User(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        createdAt: DateTime.now(),
-      );
-
-      state = state.copyWith(user: user, isLoading: false);
+      await _authService.createUserWithEmailAndPassword(email, password);
+      // 認証状態の変更は authStateChanges で自動的に処理される
     } catch (e) {
       state = state.copyWith(
-        error: 'アカウント作成に失敗しました: ${e.toString()}',
+        error: e.toString(),
         isLoading: false,
       );
     }
@@ -95,10 +78,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
     
-    // 実際の実装では Firebase Auth を使用
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    state = const AuthState();
+    try {
+      await _authService.signOut();
+      // 認証状態の変更は authStateChanges で自動的に処理される
+    } catch (e) {
+      state = state.copyWith(
+        error: e.toString(),
+        isLoading: false,
+      );
+    }
   }
 
   void clearError() {

@@ -32,14 +32,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     
     // エラーメッセージを表示
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.error != null) {
+      if (next.error != null && previous?.error != next.error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.error!),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
-        ref.read(authProvider.notifier).clearError();
       }
     });
 
@@ -52,7 +52,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -200,7 +200,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ],
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 32),
 
                 // 注意事項
                 Container(
@@ -220,9 +220,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '• 現在はサンプル実装のため、実際のアカウント作成は行われません\n'
-                        '• 入力したメール・パスワードは保存されません\n'
-                        '• アプリを再起動すると情報はリセットされます',
+                        '• Firebase Authenticationを使用してアカウントを作成します\n'
+                        '• 有効なメールアドレスとパスワード（6文字以上）が必要です\n'
+                        '• 作成したアカウントでサインインできます',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
