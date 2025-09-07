@@ -75,19 +75,22 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   void _startRecording() async {
     // マイク権限をチェック
     final permission = await Permission.microphone.status;
-    if (!permission.isGranted) {
+    
+    if (permission.isDenied) {
+      // 権限が拒否されている場合、リクエストを送信
       final result = await Permission.microphone.request();
       if (!result.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('マイクの権限が必要です'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        await _showPermissionDeniedDialog();
         return;
       }
+    } else if (permission.isPermanentlyDenied) {
+      // 権限が永続的に拒否されている場合、設定画面への誘導
+      await _showPermissionPermanentlyDeniedDialog();
+      return;
+    } else if (!permission.isGranted) {
+      // その他の理由で権限がない場合
+      await _showPermissionDeniedDialog();
+      return;
     }
 
     try {
@@ -215,6 +218,72 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
         _recordingState = RecordingState.idle;
       });
     }
+  }
+
+  Future<void> _showPermissionDeniedDialog() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.mic_off, color: Colors.red),
+            SizedBox(width: 8),
+            Text('マイク権限が必要です'),
+          ],
+        ),
+        content: const Text(
+          '音声日記を記録するには、マイクへのアクセス権限が必要です。\n'
+          '設定でマイクの使用を許可してください。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _startRecording(); // 再試行
+            },
+            child: const Text('再試行'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPermissionPermanentlyDeniedDialog() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.settings, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('設定が必要です'),
+          ],
+        ),
+        content: const Text(
+          'マイクの権限が無効になっています。\n'
+          '設定アプリでマイクの使用を許可してから、再度お試しください。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openAppSettings(); // 設定アプリを開く
+            },
+            child: const Text('設定を開く'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showResultDialog(MoodEntry entry) {
