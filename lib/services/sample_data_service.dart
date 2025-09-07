@@ -38,9 +38,10 @@ class SampleDataService {
           20, // 20:00 JST
           _random.nextInt(60), // ランダムな分
         ),
-        gcsUri: 'gs://sample-bucket/audio/sample_user_123/$dateString.m4a',
+        storagePath: 'audio/sample_user_123/$dateString.m4a',
         source: 'daily_20_jst',
-        version: 1,
+        version: 2,
+        intensity: double.parse(score.abs().toStringAsFixed(2)),
       );
       
       entries.add(entry);
@@ -90,9 +91,10 @@ class SampleDataService {
           20, // 20:00 JST
           _random.nextInt(60), // ランダムな分
         ),
-        gcsUri: 'gs://sample-bucket/audio/sample_user_123/$dateString.m4a',
+        storagePath: 'audio/sample_user_123/$dateString.m4a',
         source: 'daily_20_jst',
-        version: 1,
+        version: 2,
+        intensity: double.parse(score.abs().toStringAsFixed(2)),
       );
       
       entries.add(entry);
