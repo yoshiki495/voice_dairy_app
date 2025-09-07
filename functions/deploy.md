@@ -1,6 +1,51 @@
-# Firebase Functions デプロイガイド
+# 【廃止予定】Firebase Functions デプロイガイド
 
-## 前提条件
+> ⚠️ **重要**: このドキュメントは廃止予定です。  
+> Firebase FunctionsからCloud Runに移行しました。  
+> 新しいデプロイ手順は `cloud_run/README.md` を参照してください。
+
+## 移行済み項目
+
+このFunctionsは以下のCloud Run APIに移行されました：
+
+- **感情分析API**: `https://voice-emotion-analysis-g5uj2gd3ja-an.a.run.app`
+- **デプロイ手順**: `cloud_run/deploy.sh`
+- **ドキュメント**: `cloud_run/README.md`
+
+## Cloud Runへの移行手順
+
+1. **Cloud Run APIのデプロイ**
+   ```bash
+   cd cloud_run
+   ./deploy.sh
+   ```
+
+2. **Flutter アプリの更新**
+   - 詳細は `docs/flutter_cloud_run_integration.md` を参照
+
+3. **Firebase Functions の無効化**
+   ```bash
+   # 必要に応じてFunctionsを削除
+   firebase functions:delete analyze_emotion
+   firebase functions:delete get_upload_url
+   firebase functions:delete get_mood_data
+   ```
+
+## 移行の利点
+
+- **自動スケーリング**: Cloud Runの柔軟なスケーリング
+- **コスト削減**: 使用時のみ課金
+- **パフォーマンス向上**: 専用リソースでの安定動作
+- **メンテナンス性**: Dockerベースの統一環境
+
+---
+
+## 以下は旧Firebase Functions用の情報（参考用）
+
+<details>
+<summary>旧Firebase Functionsデプロイ手順（参考用）</summary>
+
+### 前提条件
 
 1. **Firebase CLI のインストール**
    ```bash
@@ -18,7 +63,7 @@
    python3 --version  # 3.11以上であることを確認
    ```
 
-## モデルファイルの配置
+### モデルファイルの配置
 
 デプロイ前に、以下の3つのモデルファイルを `functions/models/` ディレクトリに配置してください：
 
@@ -31,7 +76,7 @@
 ls -la functions/models/
 ```
 
-## デプロイ手順
+### デプロイ手順
 
 1. **プロジェクトルートディレクトリに移動**
    ```bash
@@ -50,82 +95,4 @@ ls -la functions/models/
    firebase deploy --only functions
    ```
 
-## 個別関数のデプロイ
-
-特定の関数のみデプロイしたい場合：
-
-```bash
-# 感情分析関数のみ
-firebase deploy --only functions:analyze_emotion
-
-# アップロードURL発行関数のみ
-firebase deploy --only functions:get_upload_url
-
-# 感情データ取得関数のみ
-firebase deploy --only functions:get_mood_data
-```
-
-## 環境変数の設定（必要に応じて）
-
-```bash
-# 例：外部APIキーなどの設定
-firebase functions:config:set someservice.key="THE API KEY"
-```
-
-## ログの確認
-
-```bash
-# リアルタイムログ
-firebase functions:log
-
-# 特定関数のログ
-firebase functions:log --only analyze_emotion
-```
-
-## トラブルシューティング
-
-### よくある問題
-
-1. **モデルファイルが見つからない**
-   - `functions/models/` ディレクトリに必要な .pkl ファイルがあることを確認
-
-2. **Python依存関係のエラー**
-   - `functions/requirements.txt` の内容を確認
-   - 必要に応じてバージョンを調整
-
-3. **メモリ不足エラー**
-   - Firebase Console で関数のメモリ設定を増加（推奨：2GB以上）
-
-4. **タイムアウトエラー**
-   - Firebase Console で関数のタイムアウト設定を増加（推奨：540秒）
-
-### デバッグ方法
-
-1. **ローカルエミュレータでのテスト**
-   ```bash
-   firebase emulators:start --only functions
-   ```
-
-2. **ログレベルの調整**
-   - `main.py` 内の `print()` 文でデバッグ情報を出力
-
-## パフォーマンス最適化
-
-1. **コールドスタート対策**
-   - グローバル変数でモデルをキャッシュ（実装済み）
-   - 最小インスタンス数の設定を検討
-
-2. **メモリ使用量の最適化**
-   - 不要な依存関係の削除
-   - モデルファイルサイズの最適化
-
-## セキュリティ
-
-1. **認証の確認**
-   - すべての関数で `req.auth` チェックを実装済み
-
-2. **CORS設定**
-   - 必要に応じて Firebase Console で設定
-
-3. **アクセス制限**
-   - Firebase Rules でストレージアクセスを制限
+</details>

@@ -1,0 +1,29 @@
+# Flask Web Framework
+Flask>=2.3.0
+gunicorn>=21.2.0
+
+# Google Cloud Services
+google-cloud-firestore>=2.11.0
+google-cloud-storage>=2.10.0
+google-auth>=2.23.0
+
+# Firebase Admin SDK
+firebase-admin>=6.0.0
+
+# 音声特徴量抽出
+opensmile>=2.5.0
+
+# データ処理・数値計算
+pandas>=1.5.0
+numpy>=1.21.0
+
+# 機械学習
+scikit-learn>=1.1.0
+joblib>=1.2.0
+xgboost>=1.6.0
+
+# 音声処理補助ライブラリ
+librosa>=0.9.0
+
+# その他のユーティリティ
+python-dateutil>=2.8.0

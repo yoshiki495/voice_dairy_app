@@ -7,7 +7,7 @@
 Voice Diary Appは、毎日の感情を音声で記録し、その感情スコアを週次グラフで可視化するアプリケーションです。
 - 毎日20:00（JST）にプッシュ通知を送信
 - 最大60秒の音声録音機能
-- Firebase Functionsで感情解析（-1〜1のスコア）
+- Cloud Run APIで感情解析（-1〜1のスコア）
 - 週次感情グラフの表示（月〜日）
 - Firebase認証によるユーザー管理
 
@@ -21,17 +21,17 @@ Voice Diary Appは、毎日の感情を音声で記録し、その感情スコ�
 - **グラフ表示**: fl_chart
 - **認証**: Firebase Auth
 - **データベース**: Cloud Firestore
-- **Firebase Functions**: cloud_functions
+- **API通信**: http (Cloud Run API)
 - **録音**: record パッケージ
 - **プッシュ通知**: Firebase Messaging
 - **ローカル通知**: flutter_local_notifications
 
-### バックエンド（Firebase一括管理）
-- **API**: Firebase Functions
+### バックエンド
+- **API**: Cloud Run (Flask + Docker)
 - **ストレージ**: Firebase Storage
 - **データベース**: Cloud Firestore
 - **通知配信**: Firebase Cloud Messaging (FCM)
-- **スケジューラー**: Firebase Functions（スケジュール関数）
+- **スケジューラー**: Cloud Scheduler + Cloud Run
 
 ## 主な機能
 
@@ -47,7 +47,7 @@ Voice Diary Appは、毎日の感情を音声で記録し、その感情スコ�
 - m4a形式（AAC, 44.1kHz, 96kbps）
 
 ### 3. 感情解析
-- Firebase Functionsで音声解析
+- Cloud Run APIで音声解析
 - 感情スコア算出（-1〜1の範囲）
 - Positive/Neutral/Negativeのラベル付け
 - Firestoreに自動保存
@@ -70,7 +70,8 @@ Voice Diary Appは、毎日の感情を音声で記録し、その感情スコ�
 - Flutter SDK 3.8.1+
 - Dart 3.x+
 - iOS 12.0+ / Android API 21+
-- Firebase プロジェクト（Functions、Storage、Firestore、Auth、Messaging有効化）
+- Firebase プロジェクト（Storage、Firestore、Auth、Messaging有効化）
+- Google Cloud プロジェクト（Cloud Run有効化）
 
 ### インストール手順
 
@@ -190,50 +191,59 @@ lib/
     └── mood_summary.dart   # 感情サマリー
 ```
 
-## Firebase Functions API仕様
+## Cloud Run API仕様
 
 ### 署名付きURL発行
 ```dart
-// Flutter側（cloud_functions使用）
-final callable = FirebaseFunctions.instance.httpsCallable('getUploadUrl');
-final result = await callable.call({
-  'date': '2025-08-14',
-  'contentType': 'audio/m4a'
-});
+// Flutter側（http使用）
+final response = await http.post(
+  Uri.parse('${cloudRunUrl}/get-upload-url'),
+  headers: {
+    'Authorization': 'Bearer $firebaseIdToken',
+    'Content-Type': 'application/json',
+  },
+  body: jsonEncode({
+    'date': '2025-08-14',
+    'contentType': 'audio/m4a'
+  }),
+);
 
 // レスポンス例
 {
-  "uploadUrl": "https://firebasestorage.googleapis.com/..."
+  "uploadUrl": "https://storage.googleapis.com/..."
 }
 ```
 
 ### 感情解析
 ```dart
 // Flutter側
-final callable = FirebaseFunctions.instance.httpsCallable('analyzeEmotion');
-final result = await callable.call({
-  'storagePath': 'audio/userId/2025-08-14.m4a',
-  'recordedAt': '2025-08-14T20:01:12+09:00'
-});
+final response = await http.post(
+  Uri.parse('${cloudRunUrl}/analyze-emotion'),
+  headers: {
+    'Authorization': 'Bearer $firebaseIdToken',
+    'Content-Type': 'application/json',
+  },
+  body: jsonEncode({
+    'storagePath': 'audio/userId/2025-08-14.m4a',
+    'recordedAt': '2025-08-14T20:01:12+09:00'
+  }),
+);
 
 // レスポンス例
 {
   "score": 0.72,
   "timestamp": "2025-08-14T20:01:15+09:00",
-  "label": "positive"
+  "category": "positive"
 }
 ```
 
 ### スケジュール通知（サーバーサイド）
-```javascript
-// Firebase Functions
-exports.sendDailyNotification = functions
-  .region('asia-northeast1')
-  .pubsub.schedule('0 11 * * *') // JST 20:00
-  .timeZone('Asia/Tokyo')
-  .onRun(async (context) => {
-    // FCM送信処理
-  });
+```bash
+# Cloud Scheduler + Cloud Run
+gcloud scheduler jobs create http daily-notification \
+  --schedule="0 11 * * *" \
+  --uri="${CLOUD_RUN_URL}/send-notification" \
+  --time-zone="Asia/Tokyo"
 ```
 
 ## データモデル
@@ -246,11 +256,12 @@ users/{userId}
 
 users/{userId}/moods/{yyyy-MM-dd}
   score: number       // -1.0 ~ 1.0
-  label: string       // "positive" | "neutral" | "negative"
+  category: string    // "positive" | "neutral" | "negative"
+  intensity: number   // 生の感情強度値
   recordedAt: timestamp
   storagePath: string // Firebase Storage path
   source: string      // "daily_20_jst"
-  version: number     // スキーマバージョン
+  version: number     // スキーマバージョン (v2: Cloud Run API)
 ```
 
 ## 開発・デバッグ
