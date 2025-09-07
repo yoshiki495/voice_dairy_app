@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>このアプリは音声日記を記録するためにマイクへのアクセスが必要です。</string>
 </dict>
 </plist>
