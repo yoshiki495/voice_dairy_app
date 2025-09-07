@@ -8,10 +8,12 @@ import tempfile
 from datetime import datetime
 from typing import Dict, Any
 
-from firebase_admin import initialize_app, firestore, storage
+from firebase_admin import initialize_app, firestore, storage, credentials
 from firebase_functions import https_fn
 
 # Firebase初期化
+# FIRESTORE_DATABASEを環境変数で指定
+os.environ['FIRESTORE_DATABASE'] = 'default'
 initialize_app()
 
 # グローバル変数でモデルを保持（コールドスタート対策）
@@ -216,8 +218,9 @@ def analyze_emotion(req: https_fn.CallableRequest) -> Dict[str, Any]:
                 if os.path.exists(temp_file.name):
                     os.unlink(temp_file.name)
         
-        # Firestoreに結果保存
-        db = firestore.client()
+        # Firestoreに結果保存（defaultデータベースを明示的に指定）
+        from google.cloud import firestore as gcp_firestore
+        db = gcp_firestore.Client(project='voice-dairy-app-70a9d', database='default')
         date_key = _extract_date_from_path(storage_path)
         user_id = req.auth.uid
         
@@ -279,8 +282,9 @@ def get_mood_data(req: https_fn.CallableRequest) -> Dict[str, Any]:
                 message='Start date and end date are required'
             )
         
-        # Firestoreからデータ取得
-        db = firestore.client()
+        # Firestoreからデータ取得（defaultデータベースを明示的に指定）
+        from google.cloud import firestore as gcp_firestore
+        db = gcp_firestore.Client(project='voice-dairy-app-70a9d', database='default')
         user_id = req.auth.uid
         
         print(f"Project ID: {db.project}")

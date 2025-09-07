@@ -2,6 +2,7 @@
 # Firebase関連
 firebase-admin>=6.0.0
 firebase-functions>=0.1.0
+google-cloud-firestore>=2.11.0
 
 # 音声特徴量抽出
 opensmile>=2.5.0
