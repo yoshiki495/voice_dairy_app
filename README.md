@@ -111,6 +111,60 @@ cd ..
 flutter run
 ```
 
+## 動作確認手順
+
+### iPhone 16 シミュレーターでの実行
+
+1. **シミュレーターの起動**
+```bash
+xcrun simctl boot "iPhone 16" && open -a Simulator
+```
+
+2. **アプリの実行**
+```bash
+# シミュレーターが起動したら
+flutter run
+# デバイス選択画面でiPhone 16を選択
+```
+
+### 実機（iPhone）での実行
+
+1. **iPhoneをUSBまたはワイヤレスで接続**
+   - USB接続：Lightning/USB-Cケーブルで接続
+   - ワイヤレス接続：Xcode > Window > Devices and Simulators でワイヤレス接続を有効化
+
+2. **開発者設定の確認**
+   - iPhone: 設定 > 一般 > VPNとデバイス管理 > 開発者アプリ > 信頼
+   - Xcode: 自動署名が有効になっていることを確認
+
+3. **アプリの実行**
+```bash
+flutter run
+# デバイス選択画面でiPhoneを選択（例：iPhone (4) (wireless)）
+```
+
+### Firebase Authentication の設定
+
+アプリを実行する前に、Firebase Console で認証を有効化してください：
+
+1. [Firebase Console](https://console.firebase.google.com/project/voice-dairy-app-70a9d/authentication/providers) を開く
+2. **「Sign-in method」** タブをクリック
+3. **「Email/Password」** を選択して有効化
+4. **「Save」** をクリック
+
+### テスト用アカウント
+
+Firebase Authentication が有効化された後、以下でテストできます：
+
+**アカウント作成**
+- メール: test@example.com
+- パスワード: 123456（6文字以上）
+
+**機能テスト**
+- サインアップ・サインイン
+- 認証状態の自動復元
+- エラーハンドリング（無効なメール、短いパスワードなど）
+
 ## プロジェクト構造
 
 ```

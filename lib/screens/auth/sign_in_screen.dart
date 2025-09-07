@@ -29,20 +29,20 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     
     // エラーメッセージを表示
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.error != null) {
+      if (next.error != null && previous?.error != next.error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.error!),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
-        ref.read(authProvider.notifier).clearError();
       }
     });
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -171,17 +171,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'サンプルアカウント',
+                        'Firebase Authentication',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text('メール: test@example.com'),
-                      const Text('パスワード: 123456'),
+                      const Text('Firebase Authenticationを使用'),
+                      const Text('有効なアカウントでサインインしてください'),
                       const SizedBox(height: 8),
                       Text(
-                        '※ 現在はバックエンド未実装のため、任意のメール・パスワードでログイン可能です',
+                        '※ アカウントをお持ちでない場合は「アカウント作成」から新規登録してください',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
