@@ -88,7 +88,11 @@ def test_function(req: https_fn.CallableRequest) -> Dict[str, Any]:
     }
 
 
-@https_fn.on_call(region='asia-northeast1')
+@https_fn.on_call(
+    region='asia-northeast1',
+    memory=512,
+    timeout_sec=60
+)
 def get_upload_url(req: https_fn.CallableRequest) -> Dict[str, Any]:
     """
     音声ファイルアップロード用の署名付きURL発行
@@ -140,7 +144,11 @@ def get_upload_url(req: https_fn.CallableRequest) -> Dict[str, Any]:
         )
 
 
-@https_fn.on_call(region='asia-northeast1')
+@https_fn.on_call(
+    region='asia-northeast1',
+    memory=1024,
+    timeout_sec=300
+)
 def analyze_emotion(req: https_fn.CallableRequest) -> Dict[str, Any]:
     """
     音声ファイルから感情分析を実行
@@ -244,7 +252,11 @@ def analyze_emotion(req: https_fn.CallableRequest) -> Dict[str, Any]:
         )
 
 
-@https_fn.on_call(region='asia-northeast1')
+@https_fn.on_call(
+    region='asia-northeast1',
+    memory=512,
+    timeout_sec=60
+)
 def get_mood_data(req: https_fn.CallableRequest) -> Dict[str, Any]:
     """
     ユーザーの感情データを取得（週次グラフ用）
@@ -271,8 +283,21 @@ def get_mood_data(req: https_fn.CallableRequest) -> Dict[str, Any]:
         db = firestore.client()
         user_id = req.auth.uid
         
+        print(f"Project ID: {db.project}")
+        print(f"User ID: {user_id}")
+        print(f"Start date: {start_date}, End date: {end_date}")
+        print("Testing database connection...")
+        
+        # データベース接続テスト
+        try:
+            db.collection('test').limit(1).get()
+            print("Database connection successful")
+        except Exception as db_error:
+            print(f"Database connection failed: {db_error}")
+            raise
+        
         moods_ref = db.collection('users').document(user_id).collection('moods')
-        query = moods_ref.where('__name__', '>=', start_date).where('__name__', '<=', end_date)
+        query = moods_ref.where('date', '>=', start_date).where('date', '<=', end_date)
         
         mood_data = []
         for doc in query.stream():
