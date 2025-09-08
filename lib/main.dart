@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'utils/router.dart';
+import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ class VoiceDiaryApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeState = ref.watch(themeProvider);
     
     return MaterialApp.router(
       title: '音声日記',
@@ -104,7 +106,7 @@ class VoiceDiaryApp extends ConsumerWidget {
           ),
         ),
       ),
-      themeMode: ThemeMode.system,
+      themeMode: themeState.themeOption.themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../utils/page_transitions.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final themeState = ref.watch(themeProvider);
 
     return SwipeableScaffold(
       onSwipeBack: () {
@@ -65,6 +67,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   );
                 },
+              ),
+            ],
+          ),
+
+          // 表示設定セクション
+          _buildSection(
+            title: '表示設定',
+            children: [
+              ListTile(
+                leading: const Icon(Icons.palette),
+                title: const Text('テーマ'),
+                subtitle: Text(themeState.themeOption.displayName),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showThemeDialog(),
               ),
             ],
           ),
@@ -283,6 +299,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _showThemeDialog() {
+    final themeState = ref.read(themeProvider);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('テーマ選択'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemeOption.values.map((option) {
+            return RadioListTile<ThemeOption>(
+              title: Text(option.displayName),
+              subtitle: _getThemeDescription(option),
+              value: option,
+              groupValue: themeState.themeOption,
+              onChanged: (ThemeOption? value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setTheme(value);
+                  Navigator.of(context).pop();
+                }
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _getThemeDescription(ThemeOption option) {
+    switch (option) {
+      case ThemeOption.system:
+        return const Text('端末の設定に合わせて自動で変更されます');
+      case ThemeOption.light:
+        return const Text('明るい背景色で表示されます');
+      case ThemeOption.dark:
+        return const Text('暗い背景色で表示されます');
+    }
   }
 
   void _showAboutDialog() {
