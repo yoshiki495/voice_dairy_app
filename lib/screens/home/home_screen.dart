@@ -133,9 +133,10 @@ class HomeScreen extends ConsumerWidget {
                                   if (todayEntry != null) {
                                     return Row(
                                       children: [
-                                        Text(
-                                          todayEntry.label.emoji,
-                                          style: const TextStyle(fontSize: 16),
+                                        Icon(
+                                          todayEntry.label.iconData,
+                                          color: Colors.white.withOpacity(0.9),
+                                          size: 16,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(

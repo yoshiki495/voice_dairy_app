@@ -293,7 +293,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Text(entry.label.emoji, style: const TextStyle(fontSize: 24)),
+            Icon(
+              entry.label.iconData,
+              color: entry.label.color,
+              size: 24,
+            ),
             const SizedBox(width: 8),
             const Text('解析完了'),
           ],
@@ -540,7 +544,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
       case RecordingState.completed:
         return '録音が完了しました。再録音または送信を選択してください。';
       case RecordingState.processing:
-        return 'Cloud Run APIで音声を解析して感情スコアを算出しています...';
+        return '音声を解析して感情スコアを算出しています...';
     }
   }
 
