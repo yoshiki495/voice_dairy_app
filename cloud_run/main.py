@@ -6,7 +6,7 @@ Flask API for Voice Emotion Analysis on Cloud Run
 import os
 import tempfile
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
 import numpy as np
@@ -159,16 +159,13 @@ def get_upload_url():
         
         # Google Cloud Storageクライアント初期化
         storage_client = storage.Client(project=PROJECT_ID)
-        bucket = storage_client.bucket(f"{PROJECT_ID}.appspot.com")
+        bucket = storage_client.bucket(f"{PROJECT_ID}.firebasestorage.app")
         blob = bucket.blob(storage_path)
         
-        # 署名付きURL生成（15分有効）
-        upload_url = blob.generate_signed_url(
-            version="v4",
-            expiration=datetime.now().timestamp() + 15 * 60,  # 15分後
-            method="PUT",
-            content_type=content_type
-        )
+        # Cloud RunではFirebase Storageの署名付きURL生成が困難なため、
+        # Flutterアプリ側で直接Firebase Storageにアップロードするよう変更
+        # ここではストレージパスのみを返す
+        upload_url = None  # Flutterアプリで直接Firebase Storageを使用
         
         return jsonify({
             'uploadUrl': upload_url,
@@ -208,7 +205,7 @@ def analyze_emotion():
         
         # Google Cloud Storageから音声ファイルをダウンロード
         storage_client = storage.Client(project=PROJECT_ID)
-        bucket = storage_client.bucket(f"{PROJECT_ID}.appspot.com")
+        bucket = storage_client.bucket(f"{PROJECT_ID}.firebasestorage.app")
         blob = bucket.blob(storage_path)
         
         if not blob.exists():
@@ -223,9 +220,40 @@ def analyze_emotion():
                 # openSMILEで特徴量抽出
                 features = _smile.process_file(temp_file.name)
                 logger.info(f"Extracted features shape: {features.shape}")
+                logger.info(f"Extracted feature columns: {list(features.columns)[:10]}...")  # 最初の10個を表示
                 
-                # 特徴量の整形（必要に応じて欠損カラムを0で補完）
-                # 注意: 実際の運用では学習時の特徴量カラムリストを保存しておく必要があります
+                # 学習時の特徴量名を取得（パイプラインから）
+                try:
+                    # 分類器のパイプラインから学習時の特徴量情報を取得
+                    if hasattr(_classifier_pipeline, 'feature_names_in_'):
+                        expected_features = _classifier_pipeline.feature_names_in_
+                    else:
+                        # パイプラインの最初のステップから取得を試行
+                        first_step = _classifier_pipeline.named_steps[list(_classifier_pipeline.named_steps.keys())[0]]
+                        if hasattr(first_step, 'feature_names_in_'):
+                            expected_features = first_step.feature_names_in_
+                        else:
+                            # フォールバック: 現在の特徴量をそのまま使用
+                            expected_features = features.columns
+                    
+                    logger.info(f"Expected features from model: {len(expected_features)} features")
+                    logger.info(f"Expected feature examples: {list(expected_features)[:10]}...")
+                    
+                    # 特徴量の整形：学習時と同じ順序・名前にする
+                    missing_features = set(expected_features) - set(features.columns)
+                    if missing_features:
+                        logger.warning(f"Missing features ({len(missing_features)}): {list(missing_features)[:5]}...")
+                        # 欠損した特徴量を0で補完
+                        for feature in missing_features:
+                            features[feature] = 0.0
+                    
+                    # 学習時と同じ順序に並び替え
+                    features = features[expected_features]
+                    logger.info(f"Features aligned. Final shape: {features.shape}")
+                    
+                except Exception as feature_error:
+                    logger.warning(f"Could not align features: {feature_error}. Using extracted features as-is.")
+                    # フォールバック: 元の特徴量をそのまま使用
                 
                 # 感情カテゴリ予測
                 emotion_category_num = _classifier_pipeline.predict(features)[0]

@@ -96,7 +96,7 @@ class MoodNotifier extends StateNotifier<MoodState> {
         label: MoodLabel.fromCategory(result.category),
         intensity: result.intensity,
         recordedAt: result.timestamp,
-        storagePath: null, // Firebase Functionsで管理
+        storagePath: null, // Cloud Run APIで管理
         source: 'daily_20_jst',
         version: 2,
       );

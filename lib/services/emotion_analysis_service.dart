@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:voice_diary_app/services/cloud_run_api_service.dart';
 
 /// 感情分析API結果
 class EmotionAnalysisResult {
@@ -31,17 +31,17 @@ class EmotionAnalysisResult {
 
 /// 署名付きURL発行結果
 class UploadUrlResult {
-  final String uploadUrl;
+  final String? uploadUrl;  // nullableに変更
   final String storagePath;
 
   UploadUrlResult({
-    required this.uploadUrl,
+    this.uploadUrl,  // requiredを削除
     required this.storagePath,
   });
 
   factory UploadUrlResult.fromMap(Map<String, dynamic> map) {
     return UploadUrlResult(
-      uploadUrl: map['uploadUrl'] as String,
+      uploadUrl: map['uploadUrl'] as String?,  // nullable castに変更
       storagePath: map['storagePath'] as String,
     );
   }
@@ -53,7 +53,7 @@ class EmotionAnalysisService {
   factory EmotionAnalysisService() => _instance;
   EmotionAnalysisService._internal();
 
-  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'asia-northeast1');
+  final CloudRunApiService _apiService = CloudRunApiService();
 
   /// 音声ファイルをアップロードして感情分析を実行
   /// 
@@ -68,11 +68,11 @@ class EmotionAnalysisService {
     try {
       recordedAt ??= DateTime.now();
       
-      // 1. 署名付きURL取得
+      // 1. ストレージパス取得
       final uploadResult = await _getUploadUrl(recordedAt);
       
-      // 2. 音声ファイルをアップロード
-      await _uploadAudioFile(audioFilePath, uploadResult.uploadUrl);
+      // 2. Firebase Storageに直接アップロード
+      await _uploadAudioFileToFirebase(audioFilePath, uploadResult.storagePath);
       
       // 3. 感情分析を実行
       final analysisResult = await _performEmotionAnalysis(
@@ -92,40 +92,35 @@ class EmotionAnalysisService {
     try {
       final dateString = DateFormat('yyyy-MM-dd').format(recordedAt);
       
-      final callable = _functions.httpsCallable('get_upload_url');
-      final result = await callable.call({
-        'date': dateString,
-        'contentType': 'audio/m4a',
-      });
+      final result = await _apiService.getUploadUrl(
+        date: dateString,
+        contentType: 'audio/m4a',
+      );
 
-      return UploadUrlResult.fromMap(result.data as Map<String, dynamic>);
+      if (result == null) {
+        throw Exception('API呼び出しが失敗しました');
+      }
+
+      return UploadUrlResult.fromMap(result);
       
     } catch (e) {
       throw Exception('署名付きURL取得に失敗しました: $e');
     }
   }
 
-  /// 音声ファイルをFirebase Storageにアップロード
-  Future<void> _uploadAudioFile(String filePath, String uploadUrl) async {
+  /// Firebase Storageに直接アップロード
+  Future<void> _uploadAudioFileToFirebase(String filePath, String storagePath) async {
     try {
       final file = File(filePath);
-      final bytes = await file.readAsBytes();
       
-      final response = await http.put(
-        Uri.parse(uploadUrl),
-        body: bytes,
-        headers: {
-          'Content-Type': 'audio/m4a',
-          'Content-Length': bytes.length.toString(),
-        },
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('アップロードに失敗しました: ${response.statusCode}');
-      }
+      // Firebase Storageのreferenceを取得
+      final storageRef = FirebaseStorage.instance.ref().child(storagePath);
+      
+      // ファイルをアップロード
+      await storageRef.putFile(file);
       
     } catch (e) {
-      throw Exception('音声ファイルのアップロードに失敗しました: $e');
+      throw Exception('Firebase Storageへのアップロードに失敗しました: $e');
     }
   }
 
@@ -135,13 +130,16 @@ class EmotionAnalysisService {
     DateTime recordedAt,
   ) async {
     try {
-      final callable = _functions.httpsCallable('analyze_emotion');
-      final result = await callable.call({
-        'storagePath': storagePath,
-        'recordedAt': recordedAt.toIso8601String(),
-      });
+      final result = await _apiService.analyzeEmotion(
+        storagePath: storagePath,
+        recordedAt: recordedAt.toIso8601String(),
+      );
 
-      return EmotionAnalysisResult.fromMap(result.data as Map<String, dynamic>);
+      if (result == null) {
+        throw Exception('API呼び出しが失敗しました');
+      }
+
+      return EmotionAnalysisResult.fromMap(result);
       
     } catch (e) {
       throw Exception('感情分析の実行に失敗しました: $e');
@@ -154,14 +152,16 @@ class EmotionAnalysisService {
     required DateTime endDate,
   }) async {
     try {
-      final callable = _functions.httpsCallable('get_mood_data');
-      final result = await callable.call({
-        'startDate': DateFormat('yyyy-MM-dd').format(startDate),
-        'endDate': DateFormat('yyyy-MM-dd').format(endDate),
-      });
+      final result = await _apiService.getMoodData(
+        startDate: DateFormat('yyyy-MM-dd').format(startDate),
+        endDate: DateFormat('yyyy-MM-dd').format(endDate),
+      );
 
-      final data = result.data as Map<String, dynamic>;
-      final moods = data['moods'] as List<dynamic>;
+      if (result == null) {
+        throw Exception('API呼び出しが失敗しました');
+      }
+
+      final moods = result['moods'] as List<dynamic>;
       
       return moods.map((mood) {
         final moodMap = mood as Map<String, dynamic>;

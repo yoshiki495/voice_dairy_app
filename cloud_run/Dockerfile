@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libsndfile1 \
     libsndfile1-dev \
     ffmpeg \
+    mediainfo \
     cmake \
     pkg-config \
     libasound2-dev \
