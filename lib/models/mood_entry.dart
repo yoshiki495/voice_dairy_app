@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum MoodLabel {
   positive,
   neutral,
@@ -32,14 +34,27 @@ enum MoodLabel {
     }
   }
 
-  String get emoji {
+  // 感情を表すアイコンデータを取得
+  IconData get iconData {
     switch (this) {
       case MoodLabel.positive:
-        return '😊';
+        return Icons.sentiment_very_satisfied;
       case MoodLabel.neutral:
-        return '😐';
+        return Icons.sentiment_neutral;
       case MoodLabel.negative:
-        return '😢';
+        return Icons.sentiment_very_dissatisfied;
+    }
+  }
+
+  // 感情を表すカラーを取得
+  Color get color {
+    switch (this) {
+      case MoodLabel.positive:
+        return Colors.green;
+      case MoodLabel.neutral:
+        return Colors.orange;
+      case MoodLabel.negative:
+        return Colors.red;
     }
   }
 }
