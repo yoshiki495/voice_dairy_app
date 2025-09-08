@@ -264,6 +264,59 @@ users/{userId}/moods/{yyyy-MM-dd}
   version: number     // スキーマバージョン (v2: Cloud Run API)
 ```
 
+## デプロイ
+
+### 全体デプロイ手順
+
+**前提条件**:
+- Firebase CLI がインストール済み
+- Google Cloud CLI がインストール済み  
+- 適切な権限でログイン済み
+
+#### 1. 一括デプロイスクリプト実行
+```bash
+# 全コンポーネントを一括デプロイ
+./deploy_all.sh
+```
+
+#### 2. 個別デプロイ手順
+
+**Firebase Firestore ルール**:
+```bash
+firebase deploy --only firestore:rules
+```
+
+**Firebase Storage ルール**:
+```bash
+firebase deploy --only storage
+```
+
+**Cloud Run API**:
+```bash
+cd cloud_run
+./deploy.sh
+cd ..
+```
+
+#### 3. デプロイ後の動作確認
+
+**API ヘルスチェック**:
+```bash
+curl https://voice-emotion-analysis-354933216254.asia-northeast1.run.app/health
+```
+
+**Flutter アプリのビルド**:
+```bash
+flutter analyze
+flutter test
+flutter build ios --release
+```
+
+### 本番環境URL
+
+- **Cloud Run API**: `https://voice-emotion-analysis-354933216254.asia-northeast1.run.app`
+- **Firebase Console**: `https://console.firebase.google.com/project/voice-dairy-app-70a9d`
+
 ## 開発・デバッグ
 
 ### テスト実行

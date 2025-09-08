@@ -320,3 +320,38 @@ users/{userId}/moods/{yyyy-MM-dd}
 - 将来拡張：Sign in with Apple（iOS）を `sign_in_with_apple` で追加可能（任意）。
 - アプリ → Firebase IDトークンを取得 → Cloud Run API で自動検証（HTTP API + Bearer Token）。
 
+## 9. デプロイ手順
+
+### 9.1 全体デプロイ
+
+**一括デプロイスクリプト**:
+```bash
+./deploy_all.sh
+```
+
+**個別デプロイ**:
+```bash
+# Firebase ルール
+firebase deploy --only firestore:rules
+firebase deploy --only storage
+
+# Cloud Run API
+cd cloud_run && ./deploy.sh && cd ..
+```
+
+### 9.2 本番環境URL
+
+- **Cloud Run API**: `https://voice-emotion-analysis-354933216254.asia-northeast1.run.app`
+- **Firebase Console**: `https://console.firebase.google.com/project/voice-dairy-app-70a9d`
+
+### 9.3 デプロイ後確認
+
+```bash
+# API ヘルスチェック
+curl https://voice-emotion-analysis-354933216254.asia-northeast1.run.app/health
+
+# Flutter アプリ確認
+flutter analyze
+flutter test
+```
+
