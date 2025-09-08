@@ -24,11 +24,39 @@ cloud_run/
 
 ### 前提条件
 
-1. Google Cloud CLIがインストールされていること
-2. 適切なGoogle Cloudプロジェクトにアクセス権があること
-3. 機械学習モデルファイルが`models/`ディレクトリに配置されていること
+1. **Google Cloud CLI**がインストールされていること
+   ```bash
+   # インストール確認
+   gcloud version
+   
+   # インストールが必要な場合
+   # macOS: brew install google-cloud-sdk
+   # その他: https://cloud.google.com/sdk/docs/install
+   ```
 
-### デプロイ手順
+2. **適切な権限**でGoogle Cloudプロジェクトにアクセスできること
+   ```bash
+   # 認証確認
+   gcloud auth list
+   
+   # ログインが必要な場合
+   gcloud auth login
+   
+   # プロジェクト設定確認
+   gcloud config get-value project
+   ```
+
+3. **機械学習モデルファイル**が`models/`ディレクトリに配置されていること
+   ```bash
+   # モデルファイル確認
+   ls -la models/
+   # 必要ファイル:
+   # - best_emotion_classifier_pipeline.pkl
+   # - best_emotion_regressor_pipeline.pkl  
+   # - label_encoder.pkl
+   ```
+
+### 自動デプロイ手順
 
 1. **cloud_runディレクトリに移動**
    ```bash
@@ -37,15 +65,17 @@ cloud_run/
 
 2. **デプロイスクリプトを実行**
    ```bash
+   chmod +x deploy.sh  # 初回のみ実行権限付与
    ./deploy.sh
    ```
 
    スクリプトは以下を自動実行します：
-   - 必要ファイルの存在確認
-   - Google Cloud認証確認
-   - 必要なAPIの有効化
-   - Dockerイメージのビルド
-   - Cloud Runへのデプロイ
+   - ✅ 必要ファイルの存在確認
+   - ✅ Google Cloud認証確認
+   - ✅ 必要なAPIの有効化（Cloud Build, Cloud Run）
+   - ✅ Dockerイメージのビルド（約3-5分）
+   - ✅ Cloud Runへのデプロイ
+   - ✅ デプロイ完了確認
 
 ### 手動デプロイ（オプション）
 
