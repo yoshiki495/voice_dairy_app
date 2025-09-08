@@ -7,6 +7,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/recording/recording_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../providers/auth_provider.dart';
+import 'page_transitions.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -39,27 +40,42 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/signin',
         name: 'signin',
-        builder: (context, state) => const SignInScreen(),
+        pageBuilder: (context, state) => CustomPageTransition.fade(
+          const SignInScreen(),
+          state,
+        ),
       ),
       GoRoute(
         path: '/signup',
         name: 'signup',
-        builder: (context, state) => const SignUpScreen(),
+        pageBuilder: (context, state) => CustomPageTransition.slideFromRight(
+          const SignUpScreen(),
+          state,
+        ),
       ),
       GoRoute(
         path: '/home',
         name: 'home',
-        builder: (context, state) => const HomeScreen(),
+        pageBuilder: (context, state) => CustomPageTransition.fade(
+          const HomeScreen(),
+          state,
+        ),
       ),
       GoRoute(
         path: '/record',
         name: 'record',
-        builder: (context, state) => const RecordingScreen(),
+        pageBuilder: (context, state) => CustomPageTransition.slideFromRight(
+          const RecordingScreen(),
+          state,
+        ),
       ),
       GoRoute(
         path: '/settings',
         name: 'settings',
-        builder: (context, state) => const SettingsScreen(),
+        pageBuilder: (context, state) => CustomPageTransition.slideFromRight(
+          const SettingsScreen(),
+          state,
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

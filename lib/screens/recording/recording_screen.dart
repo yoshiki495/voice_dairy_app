@@ -9,6 +9,7 @@ import 'dart:io';
 import 'dart:math';
 import '../../providers/mood_provider.dart';
 import '../../models/mood_entry.dart';
+import '../../utils/page_transitions.dart';
 
 enum RecordingState {
   idle,
@@ -330,8 +331,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              context.go('/home');
+              Navigator.of(context).pop(); // ダイアログを閉じる
+              if (context.canPop()) {
+                context.pop(); // 録音画面を閉じる
+              } else {
+                context.go('/home');
+              }
             },
             child: const Text('ホームに戻る'),
           ),
@@ -361,16 +366,30 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   Widget build(BuildContext context) {
     final moodState = ref.watch(moodProvider);
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('音声録音'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _recordingState == RecordingState.recording || 
-                     _recordingState == RecordingState.processing
-              ? null
-              : () => context.go('/home'),
-        ),
+    return SwipeableScaffold(
+      enableSwipeBack: _recordingState != RecordingState.recording && 
+                      _recordingState != RecordingState.processing,
+      onSwipeBack: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
+      },
+      appBar: SwipeableAppBar(
+        title: '音声録音',
+        enableSwipeBack: _recordingState != RecordingState.recording && 
+                        _recordingState != RecordingState.processing,
+        onBack: _recordingState == RecordingState.recording || 
+               _recordingState == RecordingState.processing
+            ? null
+            : () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/home');
+                }
+              },
       ),
       body: Container(
         width: double.infinity,

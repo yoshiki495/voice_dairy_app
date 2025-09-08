@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/page_transitions.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -43,13 +44,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('アカウント作成'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/signin'),
-        ),
+    return SwipeableScaffold(
+      onSwipeBack: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/signin');
+        }
+      },
+      appBar: SwipeableAppBar(
+        title: 'アカウント作成',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/signin');
+          }
+        },
       ),
       body: SafeArea(
         child: SingleChildScrollView(
