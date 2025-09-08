@@ -14,7 +14,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
   TimeOfDay _notificationTime = const TimeOfDay(hour: 20, minute: 0);
-  bool _isDarkMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -104,66 +103,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
 
-          // アプリ設定セクション
-          _buildSection(
-            title: 'アプリ設定',
-            children: [
-              SwitchListTile(
-                title: const Text('ダークモード'),
-                subtitle: const Text('アプリの外観を暗いテーマに変更'),
-                value: _isDarkMode,
-                onChanged: (value) {
-                  setState(() {
-                    _isDarkMode = value;
-                  });
-                  // 実際の実装ではテーマ設定を保存
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('ダークモード切り替え機能は今後実装予定です'),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.language),
-                title: const Text('言語'),
-                subtitle: const Text('日本語'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('言語設定機能は今後実装予定です'),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
 
-          // データ管理セクション
-          _buildSection(
-            title: 'データ管理',
-            children: [
-              ListTile(
-                leading: const Icon(Icons.download),
-                title: const Text('データをエクスポート'),
-                subtitle: const Text('録音データと感情スコアをダウンロード'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  _showExportDialog();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text('全データを削除', style: TextStyle(color: Colors.red)),
-                subtitle: const Text('すべての録音データと感情スコアを削除'),
-                trailing: const Icon(Icons.chevron_right, color: Colors.red),
-                onTap: () {
-                  _showDeleteDataDialog();
-                },
-              ),
-            ],
-          ),
 
           // サポートセクション
           _buildSection(
@@ -301,57 +241,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showExportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('データエクスポート'),
-        content: const Text(
-          'データエクスポート機能は現在開発中です。\n'
-          '将来的には、録音データと感情スコアをJSON形式で\n'
-          'エクスポートできるようになります。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _showDeleteDataDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('データ削除'),
-        content: const Text(
-          'すべてのデータを削除しますか？\n'
-          'この操作は元に戻せません。\n\n'
-          '※ 現在はサンプル実装のため、実際のデータ削除は行われません。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('キャンセル'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('データ削除機能は今後実装予定です'),
-                ),
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('削除'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showHelpDialog() {
     showDialog(
