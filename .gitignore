@@ -61,3 +61,15 @@ windows/flutter/generated_plugins.cmake
 # Firebase sensitive files (uncomment if contains sensitive data)
 # firebase.json
 # lib/firebase_options.dart
+
+# Cloud Run / Google Cloud related
+cloud_run/*.log
+cloud_run/__pycache__/
+cloud_run/.env
+cloud_run/venv/
+cloud_run/.pytest_cache/
+
+# Documentation files
+MIGRATION_SUMMARY.md
+DOCUMENTATION_UPDATE_SUMMARY.md
+docs/flutter_cloud_run_integration.md

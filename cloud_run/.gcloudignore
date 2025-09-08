@@ -1,0 +1,70 @@
+# This file specifies files that are intentionally untracked by gcloud
+# It is similar to .gitignore but for gcloud deployment
+
+# Git files
+.git
+.gitignore
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation (except README if needed)
+*.md
+!README.md
+
+# Test files
+test/
+tests/
+*_test.py
+test_*.py
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker files (not needed for Cloud Run)
+Dockerfile.dev
+docker-compose.yml
+docker-compose.*.yml
