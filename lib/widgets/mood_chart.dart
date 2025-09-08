@@ -133,9 +133,9 @@ class MoodChart extends StatelessWidget {
                 show: true,
                 getDotPainter: (spot, percent, barData, index) {
                   Color color;
-                  if (spot.y >= 0.5) {
+                  if (spot.y >= 0.1) {
                     color = Colors.green;
-                  } else if (spot.y <= -0.5) {
+                  } else if (spot.y <= -0.1) {
                     color = Colors.red;
                   } else {
                     color = Colors.orange;

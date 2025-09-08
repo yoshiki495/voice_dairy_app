@@ -99,9 +99,28 @@ def _extract_date_from_path(storage_path: str) -> str:
     return os.path.basename(storage_path).split('.')[0]
 
 
-def _normalize_score(intensity: float) -> float:
-    """感情強度を-1〜1の範囲に正規化"""
-    return max(-1.0, min(1.0, float(intensity)))
+def _normalize_score(intensity: float, category: str) -> float:
+    """感情強度を-1〜1の範囲に正規化し、ネガティブ感情の場合は負の値にする
+    
+    モデルの出力範囲を-5〜5と仮定し、以下の変換を行う：
+    - ポジティブ（0〜5） → 0〜1
+    - ネガティブ（-5〜0） → -1〜0
+    - カテゴリがnegativeの場合は絶対値を取って負にする
+    """
+    # -5〜5の範囲を-1〜1に線形変換
+    normalized = intensity / 5.0
+    
+    # 念のため-1〜1の範囲でクランプ
+    normalized = max(-1.0, min(1.0, normalized))
+    
+    # ネガティブカテゴリの場合は負の値にする（グラフ表示用）
+    if category.lower() == 'negative':
+        normalized = -abs(normalized)
+    elif category.lower() == 'positive':
+        normalized = abs(normalized)
+    # neutralの場合はそのまま
+    
+    return float(normalized)
 
 
 @app.route('/health', methods=['GET'])
@@ -262,8 +281,8 @@ def analyze_emotion():
                 # 感情強度予測
                 emotion_intensity = _regressor_pipeline.predict(features)[0]
                 
-                # スコア正規化
-                normalized_score = _normalize_score(emotion_intensity)
+                # スコア正規化（カテゴリに基づいて符号を調整）
+                normalized_score = _normalize_score(emotion_intensity, emotion_category)
                 
                 logger.info(f"Prediction results - Category: {emotion_category}, Intensity: {emotion_intensity}, Score: {normalized_score}")
                 
@@ -284,7 +303,7 @@ def analyze_emotion():
             'recordedAt': firestore.SERVER_TIMESTAMP,
             'storagePath': storage_path,
             'source': 'daily_20_jst',
-            'version': 2  # 機械学習モデル版
+            'version': 3  # 符号補正版（ネガティブは負の値）
         }
         
         db.collection('users').document(user_id).collection('moods').document(date_key).set(mood_data)
@@ -341,10 +360,22 @@ def get_mood_data():
             date_id = doc.id
             # 日付フィルタリング
             if start_date <= date_id <= end_date:
+                score = doc_data.get('score', 0.0)
+                category = doc_data.get('category', 'neutral')
+                
+                # 既存データの符号を補正（version 2以降は新しいロジック適用済み）
+                if doc_data.get('version', 1) < 3:
+                    # 古いデータは符号補正が必要
+                    if category.lower() == 'negative':
+                        score = -abs(float(score))
+                    elif category.lower() == 'positive':
+                        score = abs(float(score))
+                    # neutralはそのまま
+                
                 mood_data.append({
                     'date': date_id,
-                    'score': doc_data.get('score'),
-                    'category': doc_data.get('category'),
+                    'score': float(score),
+                    'category': category,
                     'intensity': doc_data.get('intensity'),
                     'recordedAt': doc_data.get('recordedAt').isoformat() if doc_data.get('recordedAt') else None
                 })

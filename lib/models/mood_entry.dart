@@ -6,8 +6,10 @@ enum MoodLabel {
   negative;
 
   static MoodLabel fromScore(double score) {
-    if (score >= 0.5) return MoodLabel.positive;
-    if (score <= -0.5) return MoodLabel.negative;
+    // スコア範囲: -1.0 (完全ネガティブ) ～ 1.0 (完全ポジティブ)
+    // 閾値: ±0.1 でポジティブ/ネガティブを判定（敏感な分類）
+    if (score >= 0.1) return MoodLabel.positive;
+    if (score <= -0.1) return MoodLabel.negative;
     return MoodLabel.neutral;
   }
 

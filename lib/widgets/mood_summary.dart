@@ -140,8 +140,8 @@ class MoodSummary extends StatelessWidget {
   }
 
   Color _getScoreColor(double score) {
-    if (score >= 0.5) return Colors.green;
-    if (score <= -0.5) return Colors.red;
+    if (score >= 0.1) return Colors.green;
+    if (score <= -0.1) return Colors.red;
     return Colors.orange;
   }
 }
