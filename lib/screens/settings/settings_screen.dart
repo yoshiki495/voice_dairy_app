@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/page_transitions.dart';
+import '../../widgets/profile_detail_modal.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -60,12 +62,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 subtitle: const Text('ログイン中'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  // プロフィール編集画面へ（将来実装）
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('プロフィール編集機能は今後実装予定です'),
-                    ),
-                  );
+                  if (authState.user != null) {
+                    _showProfileDetailModal(authState.user!);
+                  }
                 },
               ),
             ],
@@ -366,6 +365,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
       ],
+    );
+  }
+
+  void _showProfileDetailModal(User user) {
+    showDialog(
+      context: context,
+      builder: (context) => ProfileDetailModal(user: user),
     );
   }
 }
