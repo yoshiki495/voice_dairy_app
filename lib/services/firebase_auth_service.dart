@@ -65,7 +65,7 @@ class FirebaseAuthService {
     }
   }
 
-  // Firebase認証エラーを日本語メッセージに変換
+  // エラーメッセージを日本語で表示
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
@@ -79,15 +79,15 @@ class FirebaseAuthService {
       case 'invalid-email':
         return '無効なメールアドレスです';
       case 'user-disabled':
-        return 'このアカウントは無効化されています';
+        return 'このアカウントは利用できません';
       case 'too-many-requests':
-        return 'リクエストが多すぎます。しばらく時間をおいてから再試行してください';
+        return 'しばらく時間をおいてから再度お試しください';
       case 'operation-not-allowed':
-        return 'この認証方法は有効化されていません';
+        return 'この操作は許可されていません';
       case 'invalid-credential':
-        return '認証情報が無効です';
+        return 'ログイン情報が正しくありません';
       default:
-        return '認証エラーが発生しました: ${e.message}';
+        return 'ログインに失敗しました。もう一度お試しください';
     }
   }
 }

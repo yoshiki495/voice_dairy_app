@@ -361,7 +361,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         SizedBox(height: 16),
         Text(
           '現在はサンプル実装版です。\n'
-          'Firebase認証、音声録音・解析、\n'
+          'ユーザー認証、音声録音・解析、\n'
           'プッシュ通知機能は今後実装予定です。',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
