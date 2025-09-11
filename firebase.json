@@ -22,7 +22,7 @@
       "ios": {
         "default": {
           "projectId": "voice-dairy-app-70a9d",
-          "appId": "1:354933216254:ios:a6c868ed677a7efa8126af",
+          "appId": "1:354933216254:ios:8db0424cc99dcb368126af",
           "uploadDebugSymbols": false,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
@@ -31,7 +31,7 @@
         "lib/firebase_options.dart": {
           "projectId": "voice-dairy-app-70a9d",
           "configurations": {
-            "ios": "1:354933216254:ios:a6c868ed677a7efa8126af"
+            "ios": "1:354933216254:ios:8db0424cc99dcb368126af"
           }
         }
       }
