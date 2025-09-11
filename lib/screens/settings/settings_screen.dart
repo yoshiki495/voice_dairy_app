@@ -57,7 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 title: Text(authState.user?.email ?? ''),
-                subtitle: const Text('サンプルアカウント'),
+                subtitle: const Text('ログイン中'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   // プロフィール編集画面へ（将来実装）
