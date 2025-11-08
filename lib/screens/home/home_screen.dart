@@ -222,45 +222,6 @@ class HomeScreen extends ConsumerWidget {
                 MoodSummary(entries: weeklyEntries),
               ],
 
-              const SizedBox(height: 16),
-
-              // アクションボタン
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => context.go('/record'),
-                        icon: const Icon(Icons.mic),
-                        label: Text(hasTodayEntry ? '再録音' : '録音開始'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          // 過去のデータを表示（将来実装）
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('過去のデータ表示機能は今後実装予定です'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.history),
-                        label: const Text('履歴'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               const SizedBox(height: 32),
             ],
           ),
