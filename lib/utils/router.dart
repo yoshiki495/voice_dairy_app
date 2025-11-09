@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
-import '../screens/home/home_screen.dart';
+import '../screens/main_navigation_screen.dart';
 import '../screens/recording/recording_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../providers/auth_provider.dart';
@@ -57,7 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/home',
         name: 'home',
         pageBuilder: (context, state) => CustomPageTransition.fade(
-          const HomeScreen(),
+          const MainNavigationScreen(),
           state,
         ),
       ),
