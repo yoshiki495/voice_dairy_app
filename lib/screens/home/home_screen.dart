@@ -17,9 +17,11 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
+            
             // フィードバックセクション
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -50,7 +52,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
           ],
         ),
       ),

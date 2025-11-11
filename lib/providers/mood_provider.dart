@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mood_entry.dart';
 import '../services/emotion_analysis_service.dart';
 import '../services/sample_data_service.dart';
@@ -40,27 +42,53 @@ class MoodNotifier extends StateNotifier<MoodState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 過去1ヶ月のデータを取得
-      final now = DateTime.now();
-      final monthAgo = DateTime(now.year, now.month - 1, now.day);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('ユーザーがログインしていません');
+      }
+
+      // Firestoreからすべてのデータを取得
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('moods')
+          .get();
       
-      final results = await _emotionService.getMoodData(
-        startDate: monthAgo,
-        endDate: now,
-      );
-      
-      final entries = results.map((result) {
-        final dateString = DateFormat('yyyy-MM-dd').format(result.timestamp);
+      final entries = snapshot.docs.map((doc) {
+        final data = doc.data();
+        final dateString = doc.id; // ドキュメントIDが日付文字列（yyyy-MM-dd）
+        
+        // recordedAtがTimestampの場合とStringの場合に対応
+        DateTime recordedAt;
+        if (data['recordedAt'] is Timestamp) {
+          recordedAt = (data['recordedAt'] as Timestamp).toDate();
+        } else if (data['recordedAt'] is String) {
+          recordedAt = DateTime.parse(data['recordedAt'] as String);
+        } else {
+          // フォールバック: 日付文字列から20:00 JSTを作成
+          final dateParts = dateString.split('-');
+          recordedAt = DateTime(
+            int.parse(dateParts[0]),
+            int.parse(dateParts[1]),
+            int.parse(dateParts[2]),
+            20,
+            0,
+          );
+        }
+        
+        final score = (data['score'] as num).toDouble();
+        final category = data['category'] as String? ?? 'neutral';
+        
         return MoodEntry(
-          id: 'mood_${dateString}_${result.timestamp.millisecondsSinceEpoch}',
+          id: doc.id,
           date: dateString,
-          score: result.score,
-          label: MoodLabel.fromCategory(result.category),
-          intensity: result.intensity,
-          recordedAt: result.timestamp,
-          storagePath: null, // 必要に応じて設定
-          source: 'daily_20_jst',
-          version: 2,
+          score: score,
+          label: MoodLabel.fromCategory(category),
+          intensity: (data['intensity'] as num?)?.toDouble() ?? score.abs(),
+          recordedAt: recordedAt,
+          storagePath: data['storagePath'] as String?,
+          source: data['source'] as String? ?? 'unknown',
+          version: data['version'] as int? ?? 1,
         );
       }).toList();
       

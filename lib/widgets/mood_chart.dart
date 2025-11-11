@@ -14,7 +14,8 @@ class MoodChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    // 今日を一番右にするため、6日前から開始
+    final weekStart = now.subtract(const Duration(days: 6));
     
     // 週の各日に対応するスコアを取得
     final List<FlSpot> spots = [];
@@ -34,7 +35,7 @@ class MoodChart extends StatelessWidget {
 
     return Container(
       height: 250,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
       child: LineChart(
         LineChartData(
           gridData: FlGridData(

@@ -58,6 +58,8 @@ class FeedbackScreen extends ConsumerWidget {
                   ),
                 ),
               ] else ...[
+                const SizedBox(height: 16),
+                
                 // グラフ表示
                 Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16),

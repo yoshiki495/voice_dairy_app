@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/mood_provider.dart';
+import '../../services/firestore_sample_data_service.dart';
 import '../../utils/page_transitions.dart';
 import '../../widgets/profile_detail_modal.dart';
 
@@ -153,6 +155,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   _showAboutDialog();
+                },
+              ),
+            ],
+          ),
+
+          // 開発者向けセクション
+          _buildSection(
+            title: '開発者向け',
+            children: [
+              ListTile(
+                leading: const Icon(Icons.add_chart),
+                title: const Text('サンプルデータを追加'),
+                subtitle: const Text('10日分のサンプルデータをFirestoreに追加'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  _addSampleData();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_sweep),
+                title: const Text('サンプルデータを削除'),
+                subtitle: const Text('サンプルデータのみを削除'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  _clearSampleData();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('すべてのデータを削除', style: TextStyle(color: Colors.red)),
+                subtitle: const Text('すべての感情データを削除'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  _clearAllData();
                 },
               ),
             ],
@@ -373,5 +409,169 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (context) => ProfileDetailModal(user: user),
     );
+  }
+
+  Future<void> _addSampleData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('サンプルデータを追加'),
+        content: const Text('今日から10日前から10日分のサンプルデータをFirestoreに追加します。よろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('追加'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // ローディング表示
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final service = FirestoreSampleDataService();
+      await service.addSampleData();
+
+      // データをリロード
+      await ref.read(moodProvider.notifier).loadMoodData();
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // ローディングを閉じる
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('サンプルデータを追加しました')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // ローディングを閉じる
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('エラー: $e')),
+      );
+    }
+  }
+
+  Future<void> _clearSampleData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('サンプルデータを削除'),
+        content: const Text('サンプルデータのみを削除します。よろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // ローディング表示
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final service = FirestoreSampleDataService();
+      await service.clearSampleData();
+
+      // データをリロード
+      await ref.read(moodProvider.notifier).loadMoodData();
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // ローディングを閉じる
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('サンプルデータを削除しました')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // ローディングを閉じる
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('エラー: $e')),
+      );
+    }
+  }
+
+  Future<void> _clearAllData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('すべてのデータを削除', style: TextStyle(color: Colors.red)),
+        content: const Text('すべての感情データを削除します。この操作は取り消せません。本当によろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // ローディング表示
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final service = FirestoreSampleDataService();
+      await service.clearAllMoodData();
+
+      // データをリロード
+      await ref.read(moodProvider.notifier).loadMoodData();
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // ローディングを閉じる
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('すべてのデータを削除しました')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // ローディングを閉じる
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('エラー: $e')),
+      );
+    }
   }
 }
