@@ -118,7 +118,8 @@ def _normalize_score(intensity: float, category: str) -> float:
         normalized = -abs(normalized)
     elif category.lower() == 'positive':
         normalized = abs(normalized)
-    # neutralの場合はそのまま
+    else:  # neutralの場合は0を返す
+        normalized = 0.0
     
     return float(normalized)
 
