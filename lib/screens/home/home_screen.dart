@@ -7,6 +7,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final feedback = ref.watch(emotionDynamicsFeedbackProvider);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -20,39 +21,77 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             
             // フィードバックセクション
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 今週の感情パターン
-                    _buildFeedbackCard(
-                      context: context,
-                      title: '今週の感情パターン',
-                      content: '今週は感情の変動が少なく安定していました。気分の波が穏やかで一定のリズムを保っています。',
-                      icon: Icons.trending_up,
-                    ),
-                    const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: feedback == null
+                  ? _buildNoDataMessage(context)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 今週の感情パターン
+                        _buildFeedbackCard(
+                          context: context,
+                          title: '今週の感情パターン',
+                          content: feedback['pattern'] as String,
+                          icon: Icons.trending_up,
+                        ),
+                        const SizedBox(height: 16),
 
-                    // 感情の安定性について
-                    _buildFeedbackCard(
-                      context: context,
-                      title: '感情の安定性について',
-                      content: '感情が一定に保たれていることは、多くの場合良い兆候です。これは感情調節が上手くできている証拠かもしれません。',
-                      icon: Icons.psychology,
-                    ),
-                    const SizedBox(height: 16),
+                        // 感情の安定性について
+                        _buildFeedbackCard(
+                          context: context,
+                          title: '感情の安定性について',
+                          content: feedback['interpretation'] as String,
+                          icon: Icons.psychology,
+                        ),
+                        const SizedBox(height: 16),
 
-                    // 次のステップ
-                    _buildNextStepsCard(
-                      context: context,
-                      recommendations: const ['5分間の呼吸エクササイズを試す'],
+                        // 次のステップ
+                        _buildNextStepsCard(
+                          context: context,
+                          nextStep: feedback['nextStep'] as String,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+            ),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoDataMessage(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 48,
+              color: Theme.of(context).primaryColor,
+            ),
+            const SizedBox(height: 16),
+                    Text(
+                      'フィードバックを表示するには\n8日分以上のデータが必要です',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+            const SizedBox(height: 8),
+            Text(
+              '毎日の記録を続けることで、\n感情パターンの分析結果が表示されます。',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
           ],
         ),
       ),
@@ -117,7 +156,7 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildNextStepsCard({
     required BuildContext context,
-    required List<String> recommendations,
+    required String nextStep,
   }) {
     return Card(
       elevation: 2,
@@ -158,36 +197,11 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '今の安定した状態を維持するために、マインドフルネスの実践を続けてみましょう。',
+              nextStep,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.6,
                   ),
             ),
-            const SizedBox(height: 16),
-            ...recommendations.map((recommendation) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          recommendation,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
           ],
         ),
       ),

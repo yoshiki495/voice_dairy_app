@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mood_entry.dart';
 import '../services/emotion_analysis_service.dart';
 import '../services/sample_data_service.dart';
+import '../services/emotion_dynamics_service.dart';
 
 // 感情データを管理するプロバイダー（サンプル実装）
 class MoodState {
@@ -199,6 +200,25 @@ class MoodNotifier extends StateNotifier<MoodState> {
     }).toList();
   }
 
+  /// ベースライン期間のエントリを取得（最初の7日間）
+  List<MoodEntry> getBaselinePeriodEntries() {
+    if (state.entries.isEmpty) {
+      return [];
+    }
+    
+    // 日付でソート（古い順）
+    final sortedEntries = List<MoodEntry>.from(state.entries)
+      ..sort((a, b) => a.date.compareTo(b.date));
+    
+    // 最初の7日分を取得
+    return sortedEntries.take(7).toList();
+  }
+
+  /// 介入期間のエントリを取得（直近7日間）
+  List<MoodEntry> getInterventionPeriodEntries() {
+    return getWeeklyEntries();
+  }
+
   bool get hasTodayEntry {
     final today = DateTime.now();
     final todayString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
@@ -227,4 +247,61 @@ final hasTodayEntryProvider = Provider<bool>((ref) {
   ref.watch(moodProvider); // 状態の変更を監視
   final moodNotifier = ref.read(moodProvider.notifier);
   return moodNotifier.hasTodayEntry;
+});
+
+// 感情ダイナミクスフィードバックを提供するプロバイダー
+final emotionDynamicsFeedbackProvider = Provider<Map<String, dynamic>?>((ref) {
+  final moodState = ref.watch(moodProvider); // 状態の変更を監視
+  final moodNotifier = ref.read(moodProvider.notifier);
+  
+  // 全エントリのユニークな日数をチェック
+  final allEntries = moodState.entries;
+  final uniqueDates = allEntries.map((e) => e.date).toSet();
+  
+  // 最低8日分のユニークなデータが必要（ベースラインと介入期間が重複しないため）
+  if (uniqueDates.length < 8) {
+    return null;
+  }
+  
+  final baselineEntries = moodNotifier.getBaselinePeriodEntries();
+  final interventionEntries = moodNotifier.getInterventionPeriodEntries();
+  
+  // 各期間に最低7日分のデータが必要
+  if (baselineEntries.length < 7 || interventionEntries.length < 7) {
+    return null;
+  }
+  
+  // 各期間の感情ダイナミクスを計算
+  final baselineResult = EmotionDynamicsService.calculate(baselineEntries);
+  final interventionResult = EmotionDynamicsService.calculate(interventionEntries);
+  
+  if (baselineResult == null || interventionResult == null) {
+    return null;
+  }
+  
+  // パターンを判定
+  final patternId = EmotionDynamicsService.determinePattern(
+    baselineResult,
+    interventionResult,
+  );
+  
+  // フィードバックを取得
+  final feedback = EmotionDynamicsService.getFeedbackByPattern(patternId);
+  
+  return {
+    'patternId': patternId,
+    'pattern': feedback['pattern'],
+    'interpretation': feedback['interpretation'],
+    'nextStep': feedback['nextStep'],
+    'baselineData': {
+      'variability': baselineResult.variability,
+      'instability': baselineResult.instability,
+      'inertia': baselineResult.inertia,
+    },
+    'interventionData': {
+      'variability': interventionResult.variability,
+      'instability': interventionResult.instability,
+      'inertia': interventionResult.inertia,
+    },
+  };
 });
